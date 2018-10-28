@@ -7,7 +7,6 @@ import * as serviceWorker from './serviceWorker';
 
 import App from './components/app/App.jsx';
 
-
 ReactDOM.render(
     <Router>
         <App />
