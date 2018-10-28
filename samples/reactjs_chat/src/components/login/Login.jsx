@@ -1,127 +1,67 @@
 import React, { Component } from 'react';
 import QB from "quickblox/quickblox.min.js";
 import _ from "underscore";
+
+/** Importing Services */
+import Helpers from "./../../services/Helpers.jsx";
+import Auth from "./../../services/Auth.jsx";
+
 /** Importing assests */
 import QBLogo from "./../../assets/img/qb-logo.svg";
 import QBLogoGrey from "./../../assets/img/qblogo-grey.svg";
 
+/** Importing components */
 import Loading from "./../loading/Loading.jsx";
 
-import Helpers from "./../../services/Helpers.jsx";
-
 class Login extends Component {
-    constructor() {
-        super();
-
+    constructor(props) {
+        super(props);
         this.isLoginPageRendered = false;
         this.isLogin = false;
-        this.isLoading = false;
-        this.app = {};
+        this.app = this.props.getAppState();
+        this.version = QB.version + ':' + QB.buildNumber;
         this.state = {
+            isLoading: false,
             loginButton: "LOGIN"
         }
+        this.init();
     }
 
     componentDidMount() {
-        this.isLoginPageRendered = true;
-        console.log(this.refs.loginForm.userName);
-        this.setListeners();
+        if(!this.state.isLoading){
+            this.isLoginPageRendered = true;
+            this.setListeners();
+        }
     }
-
+    
     init(){
-        return new Promise((resolve, reject) => {
-            let user = localStorage.getItem('user');
-            if(user && !this.app.user){
-                let savedUser = JSON.parse(user);
-                this.app.room = savedUser.tag_list;
-                this.login(savedUser).then(() => {
-                    resolve(true);
-                }).catch((error) => {
-                    reject(error);
-                });
-            } else {
-                resolve(false);
+        this.state.isLoading = true;
+        Auth.init(this.app).then((authResponse) => {
+            console.log(authResponse);
+            if(authResponse.status){
+                this.props.updateAppState(authResponse.appStateData);
+                this.app = this.props.getAppState();
+                this.props.history.push('/dashboard');
+            }else{
+                this.setState({isLoading: false});
+                this.componentDidMount();
             }
+        }).catch((e) => {
+            console.error(e);
         });
     }
 
     login(user) {
         return new Promise((resolve, reject) => {
-            if(this.isLoginPageRendered){
-                this.setState({loginButton: "loading..."});
-            } else {
-                console.log("Login Page Not Rendered");
-            }
-            QB.createSession((csErr, csRes) => {
-                let userRequiredParams = {
-                    'login': user.login,
-                    'password': user.password
-                };
-                if (csErr) {
-                    loginError(csErr);
-                } else {
-                    this.app.token = csRes.token;
-                    QB.login(userRequiredParams, (loginErr, loginUser) => {
-                        if(loginErr) {
-                            /** Login failed, trying to create account */
-                            QB.users.create(user, (createErr, createUser) => {
-                                if (createErr) {
-                                    loginError(createErr);
-                                } else {
-                                    QB.login(userRequiredParams, (reloginErr, reloginUser) => {
-                                        if (reloginErr) {
-                                            loginError(reloginErr);
-                                        } else {
-                                            loginSuccess(reloginUser);
-                                        }
-                                    });
-                                }
-                            });
-                        } else {
-                            /** Update info */
-                            if(loginUser.user_tags !== user.tag_list || loginUser.full_name !== user.full_name) {
-                                QB.users.update(loginUser.id, {
-                                    'full_name': user.full_name,
-                                    'tag_list': user.tag_list
-                                }, function(updateError, updateUser) {
-                                    if(updateError) {
-                                        loginError(updateError);
-                                    } else {
-                                        loginSuccess(updateUser);
-                                    }
-                                });
-                            } else {
-                                loginSuccess(loginUser);
-                            }
-                        }
-                    });
-                }
+            this.setState({loginButton: "loading..."});
+            Auth.login(user).then((authResponse) => {
+                resolve(authResponse);
+            }).catch((e) => {
+                reject(e);
             });
-
-            function loginSuccess(userData){
-                app.user = userModule.addToCache(userData);
-                app.user.user_tags = userData.user_tags;
-                QB.chat.connect({userId: app.user.id, password: user.password}, function(err, roster){
-                    if (err) {
-                        document.querySelector('.j-login__button').innerText = 'Login';
-                        console.error(err);
-                        reject(err);
-                    } else {
-                        self.isLogin = true;
-                        resolve();
-                    }
-                });
-            }
-
-            function loginError(error){
-                self.renderLoginPage();
-                console.error(error);
-                alert(error + "\n" + error.detail);
-                reject(error);
-            }
         });
 
-    };
+    }
 
     setListeners(){
         let loginForm = this.refs.loginForm,
@@ -149,10 +89,12 @@ class Login extends Component {
 
             localStorage.setItem('user', JSON.stringify(user));
 
-            this.login(user).then(() => {
-                this.props.history.push('/dashboard')
+            this.login(user).then((loginResponse) => {
+                this.props.updateAppState(loginResponse.appStateData);
+                this.app = this.props.getAppState();
+                this.props.history.push('/dashboard');
             }).catch((error) => {
-                alert('lOGIN ERROR\n open console to get more info');
+                alert('LOGIN ERROR\n open console to get more info');
                 loginBtn.removeAttribute('disabled');
                 console.error(error);
                 this.setState({loginButton: 'LOGIN'});
@@ -192,7 +134,7 @@ class Login extends Component {
     };
     
     render() {
-        if(this.isLoading){
+        if(this.state.isLoading){
             return (<Loading />);
         }
         return (

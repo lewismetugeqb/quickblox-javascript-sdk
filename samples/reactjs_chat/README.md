@@ -12,7 +12,7 @@ Below you will find some information on how to successfully run this sample on y
 
 
 ## Overview
-This sample as said earlier is a react sample is was designed to closely look like the [JS Chat Sample](https://github.com/QuickBlox/quickblox-javascript-sdk/tree/gh-pages/samples) as much as possible.
+This sample as said earlier is a **`ReactJS`** sample and it was designed to closely look like the [JS Chat Sample](https://github.com/QuickBlox/quickblox-javascript-sdk/tree/gh-pages/samples) as much as possible. The objective of this sample it to prove **QuickBlox JS SDK** can work perfectly with pure **`ReactJS`**, so usage of external libraries was intentionaly limited.
 
 
 ## Lunch App
