@@ -17,7 +17,6 @@ class Login extends Component {
     constructor(props) {
         super(props);
         this.isLoginPageRendered = false;
-        this.isLogin = false;
         this.app = this.props.getAppState();
         this.version = QB.version + ':' + QB.buildNumber;
         this.state = {
@@ -37,7 +36,6 @@ class Login extends Component {
     init(){
         this.state.isLoading = true;
         Auth.init(this.app).then((authResponse) => {
-            console.log(authResponse);
             if(authResponse.status){
                 this.props.updateAppState(authResponse.appStateData);
                 this.app = this.props.getAppState();

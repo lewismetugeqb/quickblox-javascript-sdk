@@ -5,6 +5,7 @@ import Users from "./Users.jsx";
 
 class Auth {
     static isLogin = false;
+    static isDashboardLoaded = false;
     static appStateData = {};
     
     static init(app){

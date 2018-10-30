@@ -18,7 +18,7 @@
             }
         }
     },
-    "appConfig": {
+    "AppConfig": {
         "dilogsPerRequers": 15,
         "messagesPerRequest": 50,
         "usersPerRequest": 15,

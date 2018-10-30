@@ -18,7 +18,6 @@ class App extends Component {
 			_config: QBconfig,
     		user: null,
     		token: null,
-    		isDashboardLoaded: false,
     		room: null,
     		//Elements
     		page: this,
@@ -49,7 +48,7 @@ class App extends Component {
 			  	{/** Was suppose to pass an arry but looks like programmatic navigation does now work */}
 				<Route exact path="/" render={(props) => <Login {...props} updateAppState={this.updateAppState} getAppState={this.getAppState} />}  />
         		<Route exact path="/login" render={(props) => <Login {...props} updateAppState={this.updateAppState} getAppState={this.getAppState} />}  />
-				<Route path="/dashboard" component={Dashboard} />
+				<Route path="/dashboard" render={(props) => <Dashboard {...props} updateAppState={this.updateAppState} getAppState={this.getAppState} />} />
       		</div>
     	);
   	}
