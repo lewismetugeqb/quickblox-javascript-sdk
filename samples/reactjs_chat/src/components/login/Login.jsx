@@ -17,7 +17,6 @@ class Login extends Component {
     constructor(props) {
         super(props);
         this.isLoginPageRendered = false;
-        this.app = this.props.getAppState();
         this.version = QB.version + ':' + QB.buildNumber;
         this.state = {
             isLoading: false,
@@ -35,10 +34,9 @@ class Login extends Component {
     
     init(){
         this.state.isLoading = true;
-        Auth.init(this.app).then((authResponse) => {
+        Auth.init(this.props.getAppState).then((authResponse) => {
             if(authResponse.status){
                 this.props.updateAppState(authResponse.appStateData);
-                this.app = this.props.getAppState();
                 this.props.history.push('/dashboard');
             }else{
                 this.setState({isLoading: false});
@@ -89,7 +87,6 @@ class Login extends Component {
 
             this.login(user).then((loginResponse) => {
                 this.props.updateAppState(loginResponse.appStateData);
-                this.app = this.props.getAppState();
                 this.props.history.push('/dashboard');
             }).catch((error) => {
                 alert('LOGIN ERROR\n open console to get more info');

@@ -12,7 +12,6 @@ import Dashboard from './../dashboard/Dashboard.jsx';
 class App extends Component {
 	constructor() {
 		super();
-		this.getAppState = this.getAppState.bind(this);
 		this.updateAppState = this.updateAppState.bind(this);
 		this.state = {
 			_config: QBconfig,
@@ -33,11 +32,6 @@ class App extends Component {
     	QB.init(config.credentials.appId, config.credentials.authKey, config.credentials.authSecret, config.appConfig);
 	}
 
-	/** Method to expose a clone of the App current states to any component. */
-	getAppState(){
-		return {...this.state};
-	}
-
 	updateAppState(updateObj){
 		this.setState(updateObj);
 	}
@@ -46,9 +40,9 @@ class App extends Component {
     	return (
       		<div id="appPage">
 			  	{/** Was suppose to pass an arry but looks like programmatic navigation does now work */}
-				<Route exact path="/" render={(props) => <Login {...props} updateAppState={this.updateAppState} getAppState={this.getAppState} />}  />
-        		<Route exact path="/login" render={(props) => <Login {...props} updateAppState={this.updateAppState} getAppState={this.getAppState} />}  />
-				<Route path="/dashboard" render={(props) => <Dashboard {...props} updateAppState={this.updateAppState} getAppState={this.getAppState} />} />
+				<Route exact path="/" render={(props) => <Login {...props} updateAppState={this.updateAppState} getAppState={this.state} />}  />
+        		<Route exact path="/login" render={(props) => <Login {...props} updateAppState={this.updateAppState} getAppState={this.state} />}  />
+				<Route path="/dashboard" render={(props) => <Dashboard {...props} updateAppState={this.updateAppState} getAppState={this.state} />} />
       		</div>
     	);
   	}

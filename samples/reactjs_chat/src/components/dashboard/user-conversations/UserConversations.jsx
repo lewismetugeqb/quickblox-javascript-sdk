@@ -15,7 +15,7 @@ class UserConversations extends Component {
         }
         return (
             <li className="dialog__item j-dialog__item" id={ this.props.data._id } data-name={ this.props.data.name }>
-                <Link className="dialog__item_link" to={ "/dialog/" + this.props.data._id }>
+                <Link className="dialog__item_link" to={ "/dashboard/dialog/" + this.props.data._id }>
                     <span className={ "dialog__avatar m-user__img_" + this.props.data.color + " m-type_" + dialogTypeText } >
                         { accountIcon }
                     </span>

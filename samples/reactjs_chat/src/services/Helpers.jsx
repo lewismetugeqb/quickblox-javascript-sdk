@@ -1,10 +1,12 @@
 import _ from "underscore";
+import QB from "quickblox/quickblox.min.js";
 
 /** Importing QBconfig */
 import { CONSTANTS } from "./../QBconfig.json";
 
 /** Importing Services */
 import Users from "./Users.jsx";
+import Messages from "./Messages.jsx";
 
 class Helpers {
     static getUui(){
@@ -99,7 +101,176 @@ class Helpers {
             minutes = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes();
 
         return hours + ':' + minutes;
+    }
+
+    static getSrcFromAttachmentId(id, token) {
+        return QB.content.publicUrl(id) + '.json?token=' + token;
+    }
+
+    static checkIsMessageDeliveredToOccupants(message, userId) {
+        let deliveredIds = message.delivered_ids,
+            isDelivered = deliveredIds.some((id) => {
+                return id !== userId;
+            });
+
+        return isDelivered;
+    }
+
+    static checkIsMessageReadedByOccupants(message, userId) {
+        let readIds = message.read_ids,
+            isReaded = readIds.some((id) => {
+                return id !== userId;
+            });
+
+        return isReaded;
     };
+
+    static getMessageStatus(message, userId){
+        if(message.sender_id !== userId){
+            return undefined;
+        }
+
+        let deleveredToOcuupants = this.checkIsMessageDeliveredToOccupants(message, userId),
+            readedByOcuupants = this.checkIsMessageReadedByOccupants(message, userId),
+            status = !deleveredToOcuupants ? 'not delivered yet' : readedByOcuupants ? 'seen' : 'delivered';
+
+        return status;
+    };
+
+    static fillNewMessageParams(userId, msg, app) {
+        let message = {
+            _id: msg.id,
+            attachments: [],
+            created_at: +msg.extension.date_sent || Date.now(),
+            date_sent: this.getTime(+msg.extension.date_sent * 1000 || Date.now()),
+            delivered_ids: [userId],
+            message: msg.body,
+            read_ids: [userId],
+            sender_id: userId,
+            chat_dialog_id: msg.extension.dialog_id,
+            selfReaded: userId === app.user.id,
+            read: 0
+        };
+
+        if (msg.extension.attachments) {
+            let attachments = msg.extension.attachments;
+
+            for (let i = 0; i < attachments.length; i++) {
+                attachments[i].src = this.getSrcFromAttachmentId(attachments[i].id, app.token);
+            }
+
+            message.attachments = attachments;
+        }
+
+        if (message.message === CONSTANTS.ATTACHMENT.BODY) {
+            message.message = '';
+        }
+
+        if(msg.extension.notification_type) {
+            message.notification_type = msg.extension.notification_type;
+        }
+
+        if(msg.extension.occupants_ids_added){
+            message.occupants_ids_added = msg.extension.occupants_ids_added;
+        }
+
+        message.status = (userId !== app.user.id) ? this.getMessageStatus(message, app.user.id) : undefined;
+
+        return message;
+    }
+
+    static fillMessagePrams(message, app) {
+        let selfDelevered = this.checkIsMessageDeliveredToMe(message, app.user.id),
+            selfReaded = this.checkIsMessageReadedByMe(message, app.user.id);
+
+        // date_sent comes in UNIX time.
+        message.date_sent = this.getTime(message.date_sent * 1000);
+
+        if (message.attachments) {
+            let attachments = message.attachments;
+            for (var i = 0; i < attachments.length; i++) {
+                attachments[i].src = this.getSrcFromAttachmentId(attachments[i].id, app.token);
+            }
+        }
+
+        if (message.message === CONSTANTS.ATTACHMENT.BODY) {
+            message.message = '';
+        }
+
+        if(!selfDelevered){
+            Messages.sendDeliveredStatus(message._id, message.sender_id, message.chat_dialog_id);
+        }
+
+        message.selfReaded = selfReaded;
+
+        message.status = this.getMessageStatus(message, app.user.id);
+
+        return message;
+    }
+
+    static checkIsMessageDeliveredToMe(message, userId){
+        let deliveredIds = message.delivered_ids,
+            isDelivered = deliveredIds.some((id) => {
+                return id === userId;
+            });
+
+        return isDelivered;
+    }
+
+    static checkIsMessageReadedByMe(message, userId){
+        let readIds = message.read_ids,
+            isReaded = readIds.some(function(id){
+                return id === userId;
+            });
+
+        return isReaded;
+    };
+
+    static escapeHTML(str) {
+        return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    static scrollTo(elem, position) {
+        let elemHeight = elem.offsetHeight,
+            elemScrollHeight = elem.scrollHeight;
+
+        if (position === 'bottom') {
+            if ((elemScrollHeight - elemHeight) > 0) {
+                elem.scrollTop = elemScrollHeight;
+            }
+        } else if (position === 'top') {
+            elem.scrollTop = 0;
+        } else if (+position) {
+            elem.scrollTop = +position
+        }
+    };
+
+    static fillMessageBody(str) {
+        let url,
+            URL_REGEXP = /https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s\^\'\"\<\>\(\)]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s\^\'\"\<\>\(\)]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]\.[^\s\^\'\"\<\>\(\)]{2,}|www\.[a-zA-Z0-9]\.[^\s\^\'\"\<\>\(\)]{2,}/g;
+
+        str = this.escapeHTML(str);
+
+        // parser of paragraphs
+        str = str.replace(/\n/g, '<br>');
+        // parser of links
+        str = str.replace(URL_REGEXP, function(match) {
+            url = (/^[a-z]+:/i).test(match) ? match : 'https://' + match;
+
+            return '<a href="' + this.escapeHTML(url) + '" target="_blank">' + this.escapeHTML(match) + '</a>';
+        });
+
+        return str;
+    }
+
+    static checkInternetConnection() {
+        if (!navigator.onLine) {
+            alert('No internet connection!');
+            return false;
+        }
+        return true;
+    }
+
 }
 
 export default Helpers;
