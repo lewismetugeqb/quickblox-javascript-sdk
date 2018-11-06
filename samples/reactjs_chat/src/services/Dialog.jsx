@@ -1,4 +1,5 @@
 import QB from "quickblox/quickblox.min.js";
+import _ from "underscore";
 
 /** Importing QBconfig */
 import { AppConfig, CONSTANTS } from "./../QBconfig.json";
@@ -104,6 +105,103 @@ class Dialog {
                     resolve(createdDialog);
                 }
             });
+        });
+    }
+
+    static updateDialog(updates, dashboard, history) {
+        let app = dashboard.props.getAppState,
+            dialogId = updates.id,
+            dialog = this._cache[dialogId],
+            toUpdateParams = {},
+            newUsers,
+            updatedMsg = {
+                type: 'groupchat',
+                body: '',
+                extension: {
+                    save_to_history: 1,
+                    dialog_id: dialog._id,
+                    notification_type: 2,
+                    dialog_updated_at: Date.now() / 1000
+                }
+            };
+
+        if(dialog.type !== CONSTANTS.DIALOG_TYPES.GROUPCHAT) return false;
+
+        if(updates.title){
+            if(updates.title !== dialog.name){
+                toUpdateParams.name = updates.title;
+                updatedMsg.extension.dialog_name = updates.title;
+                updatedMsg.body = app.user.name + ' changed the conversation name to "' + updates.title + '".';
+            }
+        }
+
+        if (updates.userList) {
+            newUsers =  this.getNewUsers(updates, dialog);
+
+            if(newUsers.length){
+                toUpdateParams.push_all = {
+                    occupants_ids: newUsers
+                };
+
+                let usernames = newUsers.map((userId) => {
+                    return Users._cache[userId].name || userId;
+                });
+
+                this._cache[dialogId].users = this._cache[dialogId].users.concat(newUsers);
+
+                updatedMsg.body = app.user.name + ' adds ' + usernames.join(', ') + ' to the conversation.';
+                updatedMsg.extension.occupants_ids_added = newUsers.join(',');
+            } else {
+                history.push("/dashboard/dialog" + dialogId);
+                return false;
+            }
+        }
+
+        this.sendUpdateStanza(dialogId, toUpdateParams).then((dialog) => {
+            if(newUsers){
+                this.notifyNewUsers(newUsers, dialog);
+            }
+
+            dashboard.sendMessage(dialogId, updatedMsg);
+
+            if(updates.title){
+                dashboard.updateDialogUi(dialogId, updates.title);
+            }
+
+            history.push("/dashboard/dialog" + dialogId);
+        }).catch((error) => {
+            console.error(error);
+        });
+    }
+
+    static notifyNewUsers(users, dialog) {
+        let msg = {
+            extension: {
+                notification_type: 2,
+                dialog_id: dialog._id
+            }
+        };
+
+        _.each(users, (user) => {
+            QB.chat.sendSystemMessage(+user, msg);
+        });
+    }
+
+    static sendUpdateStanza(dialogId, toUpdateParams){
+        return new Promise (function(resolve, reject){
+            QB.chat.dialog.update(dialogId, toUpdateParams, (err, dialog) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(dialog);
+                }
+            });
+        });
+    }
+
+    static getNewUsers(updates, dialog){
+        return updates.userList.filter((occupantId) => {
+            return dialog.users.indexOf(occupantId) === -1;
         });
     }
 }

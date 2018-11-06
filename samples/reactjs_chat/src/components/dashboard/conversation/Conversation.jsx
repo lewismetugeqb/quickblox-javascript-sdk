@@ -13,6 +13,9 @@ import Dialog from "./../../../services/Dialog.jsx";
 import Messages from "./../../../services/Messages.jsx";
 import Users from "./../../../services/Users.jsx";
 
+/** Importing Sub Components. */
+import Message from "./Message.jsx";
+
 class Conversation extends Component {
 
     dialogTitle;
@@ -27,8 +30,10 @@ class Conversation extends Component {
 
     constructor(props) {
         super(props);
-        Dialog.prevDialogId = Dialog.dialogId;
-        Dialog.dialogId = this.props.match.params.dialogId;
+        if(Auth.isLogin){
+            Dialog.prevDialogId = Dialog.dialogId;
+            Dialog.dialogId = this.props.match.params.dialogId;
+        }
         this._typingTimer = null;
         this._typingTime = null;
         this.typingTimeout = AppConfig.typingTimeout || 3;
@@ -38,13 +43,14 @@ class Conversation extends Component {
             //name: "Lando",
             //color: "red",
             type:  null,
-            attachments: []
+            attachments: [],
+            dialogIndex: this.props.getStateDialogIndexById(Dialog.dialogId)
         }
+        console.log(this.props.getStateDialogIndexById(Dialog.dialogId));
     }
 
     componentDidMount() {
         if(Auth.isLogin){
-            console.log(Dialog._cache[Dialog.dialogId].messages);
             this.setRefs();
             this.init();
             this.renderSelectedDialog();
@@ -181,7 +187,7 @@ class Conversation extends Component {
 
         if (!this.messagesContainer.dataset.load) {
             this.messagesContainer.dataset.load = 'true';
-            this.messagesContainer.addEventListener('scroll', this.loadMoreMessagesCallback);
+            this.messagesContainer.addEventListener('scroll', this.loadMoreMessagesCallback.bind(this));
         }
     }
 
@@ -287,6 +293,7 @@ class Conversation extends Component {
                     state.dialogs[dialogIndex] = Dialog._cache[dialogId];
                     return state;
                 });
+                console.log(this.props.getDashboardState);
                 if (!msgRes.params.skip) {
                     Helpers.scrollTo(this.messagesContainer, 'bottom');
                 }
@@ -408,7 +415,6 @@ class Conversation extends Component {
     }
 
     sendIsTypingStatus(dialogId) {
-        console.log(dialogId);
         let dialog = Dialog._cache[dialogId];
 
         QB.chat.sendIsTypingStatus(dialog.jidOrUserId);
@@ -460,19 +466,20 @@ class Conversation extends Component {
         // Don't send empty message
         if (!msg.body) return false;
 
-        this.props.sendMessage(dialogId, msg);
+        this.props.sendMessage(dialogId, msg, this.messagesContainer);
     }
 
     render() {
         let editLinkVisibility = this.state.type !== 2 ? "hidden" : "";
         let quitLinkVisibility = this.state.type === 1 ? "hidden" : "";
+        if(!Auth.isLogin) return false;
         return (
             <div className="content j-content">
                 <div ref="dialogTitle" className="content__title j-content__title j-dialog">
                     <button ref="openSideBarBtn" className="open_sidebar j-open_sidebar"></button>
                     <h1 className="dialog__title j-dialog__title">{ this.state.title }</h1>
                     <div className="action_links">
-                        <Link ref="editLink" to={"/dashboard/dialog/" + this.state._id + "/edit"} className={ "add_to_dialog j-add_to_dialog " + editLinkVisibility }>
+                        <Link ref="editLink" to={"/dashboard/edit/dialog/" + this.state._id} className={ "add_to_dialog j-add_to_dialog " + editLinkVisibility }>
                             <i className="material-icons">person_add</i>
                         </Link>
                         <Link ref="quitLink" to="#" className={ "quit_fom_dialog_link j-quit_fom_dialog_link " + quitLinkVisibility } data-dialog={ this.state._id }>
@@ -482,7 +489,13 @@ class Conversation extends Component {
                 </div>
                 <div className="notifications j-notifications hidden"></div>
                 <div className="content__inner j-content__inner">
-                    <div ref="messagesContainer" className="messages j-messages"></div>
+                    <div ref="messagesContainer" className="messages j-messages">
+                        { 
+                            this.props.getDashboardState.dialogs[this.state.dialogIndex].messages.map((msg, index) => {
+                                       return(<Message key={index} {...msg} />)
+                            })
+                        }
+                    </div>
                     <form ref="sendMessageForm" name="send_message" className="send_message" autoComplete="off">
                             <textarea name="message_feald" className="message_feald" id="message_feald" autoComplete="off"
                                       autoCorrect="off" autoCapitalize="off" placeholder="Type a message" autoFocus></textarea>

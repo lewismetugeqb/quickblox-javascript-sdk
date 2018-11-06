@@ -18,7 +18,6 @@ class GroupChat extends Component {
     constructor(props) {
         super(props);
 
-        //this.addUserToDialog = this.addUserToDialog.bind(this);
         this.state = {
             users: []
         }
@@ -26,15 +25,19 @@ class GroupChat extends Component {
 
     componentDidMount(){
         if(Auth.isLogin){
-            this.dashboard = this.props.dashboard;
-            console.log(this.dashboard);
-            this.createDialogBtn = this.dashboard.createDialogBtn;
-            this.sidebar = this.dashboard.sidebar;
-            this.backToDialog = ReactDOM.findDOMNode(this.refs.backToDialog);
-            this.userListContainer = ReactDOM.findDOMNode(this.refs.userListContainer);
-            this.createDialogForm = ReactDOM.findDOMNode(this.refs.createDialogForm);
+            this.setRefs();
             this.init();
         }
+    }
+
+    setRefs(){
+        this.dashboard = this.props.dashboard;
+        console.log(this.dashboard);
+        this.createDialogBtn = this.dashboard.createDialogBtn;
+        this.sidebar = this.dashboard.sidebar;
+        this.backToDialog = ReactDOM.findDOMNode(this.refs.backToDialog);
+        this.userListContainer = ReactDOM.findDOMNode(this.refs.userListContainer);
+        this.createDialogForm = ReactDOM.findDOMNode(this.refs.createDialogForm);
     }
 
     init() {
@@ -177,7 +180,7 @@ class GroupChat extends Component {
                     <div ref="userListContainer" className="group_chat__user_list j-group_chat__user_list">
                     {
                         this.state.users.map((user, index) => {
-                            return(<ChatUser {...user} key={index} onclick={this.addUserToDialog} />)
+                            return(<ChatUser {...user} key={index} />)
                         })
                     }
                     </div>

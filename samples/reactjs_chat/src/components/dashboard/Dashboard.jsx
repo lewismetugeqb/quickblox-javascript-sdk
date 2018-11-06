@@ -22,6 +22,7 @@ import Welcome from "./Welcome.jsx";
 import Conversation from "./conversation/Conversation.jsx"
 import UserConversations from "./user-conversations/UserConversations.jsx";
 import GroupChat from "./GroupChat.jsx";
+import UpdateDialog from "./UpdateDialog.jsx";
 
 class Dashboard extends Component {
     
@@ -43,6 +44,7 @@ class Dashboard extends Component {
         this.sendMessage = this.sendMessage.bind(this);
         this.renderMessage = this.renderMessage.bind(this);
         this.createDialog = this.createDialog.bind(this);
+        this.updateDialogUi = this.updateDialogUi.bind(this);
         this.decreaseUnreadCounter = this.decreaseUnreadCounter(this);
         this.user = this.props.getAppState.user;
         this.tabName = "";
@@ -60,15 +62,10 @@ class Dashboard extends Component {
 
     componentDidMount() {
         if(Auth.isLogin){
-            this.logoutBtn = ReactDOM.findDOMNode(this.refs.logoutButton);
-            this.dialogsListContainer = ReactDOM.findDOMNode(this.refs.dialogsListContainer);
-            this.sidebar = ReactDOM.findDOMNode(this.refs.sidebar);
-            this.content = ReactDOM.findDOMNode(this.refs.content);
-            this.tabList = ReactDOM.findDOMNode(this.refs.tabList);
-            this.createDialogBtn = ReactDOM.findDOMNode(this.refs.createDialogBtn);
+            this.setRefs();
             Auth.isDashboardLoaded = true;
             this.init();
-
+            console.log(this.props.getAppState);
             // setTimeout(() => {
             //     this.setState((state) => {
             //       state.dialogs[0].unread_messages_count = 9;
@@ -81,6 +78,15 @@ class Dashboard extends Component {
             //     //this.refs.createDialog.props.className += " active";
             // }, 15000);
         }
+    }
+
+    setRefs(){
+        this.logoutBtn = ReactDOM.findDOMNode(this.refs.logoutButton);
+        this.dialogsListContainer = ReactDOM.findDOMNode(this.refs.dialogsListContainer);
+        this.sidebar = ReactDOM.findDOMNode(this.refs.sidebar);
+        this.content = ReactDOM.findDOMNode(this.refs.content);
+        this.tabList = ReactDOM.findDOMNode(this.refs.tabList);
+        this.createDialogBtn = ReactDOM.findDOMNode(this.refs.createDialogBtn);
     }
 
     init(){
@@ -261,6 +267,11 @@ class Dashboard extends Component {
                 dialogs: temp
             }));
         }
+        
+        let dialogElem = ReactDOM.findDOMNode(this.refs[id]);
+        if(dialogElem && id === Dialog.dialogId){
+            dialogElem.classList.add("selected");
+        }
     }
 
 
@@ -286,7 +297,7 @@ class Dashboard extends Component {
     };
 
     changeLastMessagePreview(dialogId, msg) {
-        let dialog = this.refs[dialogId],
+        let dialog = ReactDOM.findDOMNode(this.refs[dialogId]),
             message = msg.message,
             dialogIndex = this.getStateDialogIndexById(dialogId);
 
@@ -298,16 +309,16 @@ class Dashboard extends Component {
         Dialog._cache[dialogId].last_message_date_sent = msg.date_sent;
 
         if (dialog && dialogIndex >= 0) {
-            let messagePreview = dialog.querySelector('.j-dialog__last_message ');
+            let messagePreview = dialog.querySelector(".j-dialog__last_message");
 
             if (msg.message) {
-                messagePreview.classList.remove('attachment');
+                messagePreview.classList.remove("attachment");
                 this.setState((state) => {
                     state.dialogs[dialogIndex].last_message = message;
                     return state;
                 });
             } else {
-                messagePreview.classList.add('attachment');
+                messagePreview.classList.add("attachment");
                 this.setState((state) => {
                     state.dialogs[dialogIndex].last_message = "Attachment";
                     return state;
@@ -321,13 +332,18 @@ class Dashboard extends Component {
         }
     }
 
-    sendMessage(dialogId, msg){
-        let newMessage = Messages.sendMessage(dialogId, msg);
+    sendMessage(dialogId, msg, messageContainer){
+        let newMessage = Messages.sendMessage(dialogId, msg, this.props.getAppState);
 
         if (Dialog.dialogId === dialogId) {
-            this.renderMessage(newMessage, true);
+            this.renderMessage(newMessage);
         }
 
+        if(messageContainer){
+            setTimeout(() => {
+                Helpers.scrollTo(messageContainer, "bottom");
+            }, 500);
+        }
         this.changeLastMessagePreview(dialogId, newMessage);
     }
 
@@ -340,7 +356,7 @@ class Dashboard extends Component {
             let occupants_names = [],
                 id = createdDialog._id,
                 occupants = createdDialog.occupants_ids,
-                message_body = (this.props.getAppState.user.name || this.props.getAppState.user.login) + ' created new dialog with: ';
+                message_body = (this.props.getAppState.user.name || this.props.getAppState.user.login) + " created new dialog with: ";
 
                 _.each(occupants, function (occupantId) {
                     let occupant_name = Users._cache[occupantId].name || Users._cache[occupantId].login;
@@ -358,7 +374,7 @@ class Dashboard extends Component {
                 };
 
                 let notificationMessage = {
-                    type: 'groupchat',
+                    type: "groupchat",
                     body: message_body,
                     extension: {
                         save_to_history: 1,
@@ -388,11 +404,11 @@ class Dashboard extends Component {
                 });
 
                 /* Check active tab [chat / public] */
-                let type = params.type === CONSTANTS.DIALOG_TYPES.PUBLICCHAT ? 'public' : 'chat',
-                    activeTab = this.tabList.querySelector('.j-sidebar__tab_link.active');
+                let type = params.type === CONSTANTS.DIALOG_TYPES.PUBLICCHAT ? "public" : "chat",
+                    activeTab = this.tabList.querySelector(".j-sidebar__tab_link.active");
 
                 if (activeTab && type !== activeTab.dataset.type) {
-                    let tab = this.tabList.querySelector('.j-sidebar__tab_link[data-type="chat"]');
+                    let tab = this.tabList.querySelector(".j-sidebar__tab_link[data-type='chat']");
                     this.loadChatList(tab).then((res) => {
                         this.renderDialog(Dialog._cache[id], true);
                     }).catch((error) => {
@@ -436,9 +452,9 @@ class Dashboard extends Component {
 
     toggleActiveDialogBtn(state){
         if(state){
-            ReactDOM.findDOMNode(this.refs.createDialogBtn).classList.add('active');
+            ReactDOM.findDOMNode(this.refs.createDialogBtn).classList.add("active");
         }else{
-            ReactDOM.findDOMNode(this.refs.createDialogBtn).classList.remove('active');
+            ReactDOM.findDOMNode(this.refs.createDialogBtn).classList.remove("active");
         }
     }
 
@@ -512,7 +528,7 @@ class Dashboard extends Component {
             // }
         }
 
-         if (setAsFirst) {
+        if (setAsFirst) {
             console.log("Splicing message");
             dialog.messages.splice(0, 0, message);
             //this.setState({ dialogs: this.state.dialogs.concat([dialog]) });
@@ -528,7 +544,7 @@ class Dashboard extends Component {
         //     if (scrollPosition < 50) {
         //         helpers.scrollTo(self.container, 'bottom');
         //     }
-         } else {
+        } else {  
             dialog.messages.push(message);
         //     var containerHeightBeforeAppend = self.container.scrollHeight - self.container.scrollTop;
 
@@ -562,9 +578,9 @@ class Dashboard extends Component {
                 return this.onNotificationMessage(userId, message);
             }
 
-            let activeTab = this.tabList.querySelector('.j-sidebar__tab_link.active'),
+            let activeTab = this.tabList.querySelector(".j-sidebar__tab_link.active"),
                 tabType = activeTab.dataset.type,
-                dialogType = dialog.type === 1 ? 'public' : 'chat',
+                dialogType = dialog.type === 1 ? "public" : "chat",
                 dialogIndex = this.getStateDialogIndexById(dialog._id);
 
             if(tabType === dialogType){
@@ -587,8 +603,8 @@ class Dashboard extends Component {
             Dialog.getDialogById(msg.chat_dialog_id).then(function(dialog){
                 Dialog._cache[dialog._id] = Helpers.compileDialogParams(dialog, this.props.getAppState);
 
-                let type = dialog.type === 1 ? 'public' : 'chat',
-                    activeTab = this.tabList.querySelector('.j-sidebar__tab_link.active'),
+                let type = dialog.type === 1 ? "public" : "chat",
+                    activeTab = this.tabList.querySelector(".j-sidebar__tab_link.active"),
                     cachedDialog = Dialog._cache[dialog._id];
                 if (activeTab && type === activeTab.dataset.type) {
                     this.renderDialog(cachedDialog, true);
@@ -624,9 +640,9 @@ class Dashboard extends Component {
             }
         }
 
-        let activeTab = this.tabList.querySelector('.j-sidebar__tab_link.active'),
+        let activeTab = this.tabList.querySelector(".j-sidebar__tab_link.active"),
             tabType = activeTab.dataset.type,
-            dialogType = dialog.type === 1 ? 'public' : 'chat',
+            dialogType = dialog.type === 1 ? "public" : "chat",
             dialogIndex = this.getStateDialogIndexById(message.dialog_id);
 
         if(tabType === dialogType){
@@ -692,6 +708,12 @@ class Dashboard extends Component {
                     <Route exact path="/dashboard" component={Welcome} />
                     <Route exact path="/dashboard/create/dialog" 
                         render={(props) => <GroupChat
+                            {...props}
+                            dashboard={this}
+                        />} 
+                    />
+                    <Route exact path="/dashboard/edit/dialog/:dialogId" 
+                        render={(props) => <UpdateDialog
                             {...props}
                             dashboard={this}
                         />} 

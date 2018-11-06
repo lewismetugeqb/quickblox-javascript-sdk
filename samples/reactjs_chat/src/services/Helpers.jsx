@@ -126,6 +126,7 @@ class Helpers {
     };
 
     static getMessageStatus(message, userId){
+        console.log("Getting message Status");
         if(message.sender_id !== userId){
             return undefined;
         }
@@ -138,6 +139,7 @@ class Helpers {
     };
 
     static fillNewMessageParams(userId, msg, app) {
+        console.log(userId, msg, app);
         let message = {
             _id: msg.id,
             attachments: [],
@@ -174,7 +176,8 @@ class Helpers {
             message.occupants_ids_added = msg.extension.occupants_ids_added;
         }
 
-        message.status = (userId !== app.user.id) ? this.getMessageStatus(message, app.user.id) : undefined;
+        console.log(userId, app.user.id);
+        message.status = (userId === app.user.id) ? this.getMessageStatus(message, app.user.id) : undefined;
 
         return message;
     }

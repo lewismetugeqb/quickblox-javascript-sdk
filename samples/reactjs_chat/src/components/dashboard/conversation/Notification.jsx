@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 
 const Notification = (props) => {
     return (
-        <div class="message__wrap" id="<%= id %>">
-            <p class="m-notification_message">{ props.text }</p>
+        <div className="message__wrap" id={ props.id }>
+            <p className="m-notification_message">{ props.text }</p>
         </div>
     );
 }

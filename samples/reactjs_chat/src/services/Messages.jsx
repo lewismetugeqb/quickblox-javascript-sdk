@@ -32,7 +32,7 @@ class Messages {
         QB.chat.sendReadStatus(params);
     }
 
-    static sendMessage(dialogId, msg){
+    static sendMessage(dialogId, msg, app){
         let message = JSON.parse(JSON.stringify(msg)),
             dialog = Dialog._cache[dialogId],
             jidOrUserId = dialog.jidOrUserId;
@@ -40,7 +40,7 @@ class Messages {
         message.id = QB.chat.send(jidOrUserId, msg);
         message.extension.dialog_id = dialogId;
 
-        let newMessage = Helpers.fillNewMessageParams(this.props.getAppState.user.id, message, this.props.getAppState);
+        let newMessage = Helpers.fillNewMessageParams(app.user.id, message, app);
 
         Dialog._cache[dialogId].messages.unshift(newMessage);
 
@@ -61,6 +61,7 @@ class Messages {
 
             QB.chat.message.list(params, async (err, messages) => {
                 if (messages) {
+                    messages.items.reverse();
                     let unCachedUsers = [];
                     for(let i = 0; i < messages.items.length; i++){
                         let sender = Users._cache[messages.items[i].sender_id];
